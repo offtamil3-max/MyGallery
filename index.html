@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MyGallery</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0d12;color:#f6f7fb;font-family:system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}header{position:sticky;top:0;z-index:5;padding:20px 18px 12px;background:#0b0d12ee;backdrop-filter:blur(14px)}h1{margin:0;font-size:28px}.sub{margin-top:4px;color:#8d96a8;font-size:13px}.tabs{display:flex;gap:8px;padding:10px 18px;overflow:auto}.tabs button{border:0;border-radius:14px;padding:9px 14px;background:#171a22;color:#b9c0cf}.tabs .active{background:#fff;color:#111}.content{padding:8px 18px 100px}.row{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}.row h2{margin:0;font-size:18px}.new{border:0;border-radius:12px;padding:8px 12px;background:#171a22;color:#fff}.folders{display:flex;gap:10px;overflow:auto}.folder{min-width:126px;padding:14px;border:1px solid #252a37;border-radius:16px;background:#151821;text-align:left;color:#fff}.folder b{display:block;margin-top:8px;font-size:14px}.folder small{display:block;margin-top:2px;color:#7f8798}.empty{padding:52px 20px;text-align:center;color:#7f8798;border:1px dashed #292e39;border-radius:18px}.fab{position:fixed;right:20px;bottom:22px;width:58px;height:58px;border:0;border-radius:50%;font-size:30px;background:#fff;color:#111}.modal{display:none;position:fixed;inset:0;z-index:10;background:#0009;align-items:flex-end}.sheet{width:100%;padding:20px;background:#151821;border-radius:24px 24px 0 0}.sheet h2{margin:0}.sheet input{width:100%;margin:14px 0;padding:14px;border:1px solid #303544;border-radius:12px;background:#0d1016;color:#fff}.sheet .create{border:0;border-radius:12px;padding:12px 18px;background:#fff;color:#111}.sheet .close{float:right;border:0;border-radius:10px;padding:8px 12px;background:#292e3b;color:#fff}
+</style>
+</head>
+<body>
+<header><h1>MyGallery</h1><div class="sub">Private photo & video library</div></header>
+<nav class="tabs"><button class="active">All</button><button>Photos</button><button>Videos</button></nav>
+<main class="content">
+<section><div class="row"><h2>Folders</h2><button class="new" onclick="openModal()">＋ New</button></div><div class="folders" id="folders">
+<div class="folder">📁<b>Family</b><small>0 items</small></div>
+<div class="folder">📁<b>Friends</b><small>0 items</small></div>
+<div class="folder">📁<b>Travel</b><small>0 items</small></div>
+</div></section>
+<section><div class="row"><h2>Media</h2></div><div class="empty">🖼️<br><br>No media yet<br><small>Telegram cloud storage connection will be added next.</small></div></section>
+</main>
+<button class="fab" onclick="openModal()">＋</button>
+<div class="modal" id="modal"><div class="sheet"><button class="close" onclick="closeModal()">Close</button><h2>Create folder</h2><input id="folderName" placeholder="Folder name"><button class="create" onclick="addFolder()">Create folder</button></div></div>
+<script>
+function openModal(){document.getElementById('modal').style.display='flex';document.getElementById('folderName').focus()}
+function closeModal(){document.getElementById('modal').style.display='none'}
+function addFolder(){const n=document.getElementById('folderName').value.trim();if(!n)return;const el=document.createElement('div');el.className='folder';el.innerHTML='📁<b></b><small>0 items</small>';el.querySelector('b').textContent=n;document.getElementById('folders').appendChild(el);document.getElementById('folderName').value='';closeModal()}
+</script>
+</body>
+</html>
