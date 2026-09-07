@@ -1,48 +1,86 @@
-// MyGallery Telegram storage backend
-// Deploy as a serverless Worker. Keep BOT_TOKEN in the platform secret store.
+const corsHeaders = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET,POST,OPTIONS",
+  "access-control-allow-headers": "content-type"
+};
 
-const json = (data, status = 200) => new Response(JSON.stringify(data), {
-  status,
-  headers: { "content-type": "application/json", "access-control-allow-origin": "*" }
-});
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...corsHeaders
+    }
+  });
+}
 
 export default {
   async fetch(request, env) {
-    if (request.method === "OPTIONS") return new Response(null, {
-      headers: {
-        "access-control-allow-origin": "*",
-        "access-control-allow-methods": "GET,POST,OPTIONS",
-        "access-control-allow-headers": "content-type"
-      }
-    });
-
-    const url = new URL(request.url);
-    if (url.pathname === "/api/health") return json({ ok: true, service: "MyGallery Telegram backend" });
-
-    if (url.pathname === "/api/upload" && request.method === "POST") {
-      if (!env.BOT_TOKEN || !env.CHAT_ID) return json({ error: "Server secrets are not configured" }, 500);
-      const incoming = await request.formData();
-      const file = incoming.get("file");
-      const folder = String(incoming.get("folder") || "Other");
-      if (!(file instanceof File)) return json({ error: "file is required" }, 400);
-
-      // Telegram receives the original file. Folder is stored in the caption;
-      // a database can be added later for richer metadata and move/rename support.
-      const caption = `MyGallery | Folder: ${folder}`;
-      const body = new FormData();
-      body.append("chat_id", env.CHAT_ID);
-      body.append("document", file, file.name);
-      body.append("caption", caption);
-
-      const tg = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, {
-        method: "POST",
-        body
-      });
-      const result = await tg.json();
-      if (!result.ok) return json({ error: "Telegram upload failed", details: result.description || "unknown" }, 502);
-      return json({ ok: true, message_id: result.result.message_id, folder });
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    return json({ error: "Not found" }, 404);
+    const url = new URL(request.url);
+
+    if (url.pathname === "/api/health" && request.method === "GET") {
+      return json({ ok: true, service: "MyGallery Telegram backend" });
+    }
+
+    if (url.pathname === "/api/upload" && request.method === "POST") {
+      if (!env.BOT_TOKEN || !env.CHAT_ID) {
+        return json({ ok: false, error: "Server secrets are not configured" }, 500);
+      }
+
+      try {
+        const incoming = await request.formData();
+        const file = incoming.get("file");
+        const folder = String(incoming.get("folder") || "Other").trim().slice(0, 100);
+
+        if (!(file instanceof File)) {
+          return json({ ok: false, error: "file is required" }, 400);
+        }
+
+        if (file.size > 50 * 1024 * 1024) {
+          return json({ ok: false, error: "File is larger than Telegram Bot API's 50 MB upload limit" }, 413);
+        }
+
+        const caption = `MyGallery | Folder: ${folder || "Other"}`;
+        const body = new FormData();
+        body.append("chat_id", env.CHAT_ID);
+        body.append("document", file, file.name);
+        body.append("caption", caption);
+
+        const telegramResponse = await fetch(
+          `https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`,
+          { method: "POST", body }
+        );
+
+        const result = await telegramResponse.json();
+
+        if (!result.ok) {
+          return json({
+            ok: false,
+            error: "Telegram upload failed",
+            details: result.description || "Unknown Telegram error"
+          }, 502);
+        }
+
+        return json({
+          ok: true,
+          message_id: result.result.message_id,
+          folder: folder || "Other",
+          filename: file.name,
+          size: file.size
+        });
+      } catch (error) {
+        return json({
+          ok: false,
+          error: "Upload request failed",
+          details: error instanceof Error ? error.message : "Unknown error"
+        }, 500);
+      }
+    }
+
+    return json({ ok: false, error: "Not found" }, 404);
   }
 };
