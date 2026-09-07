@@ -4,6 +4,8 @@ const corsHeaders = {
   "access-control-allow-headers": "content-type"
 };
 
+const APP_URL = "https://raw.githubusercontent.com/offtamil3-max/MyGallery/main/index.html";
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -21,6 +23,18 @@ export default {
     }
 
     const url = new URL(request.url);
+
+    if (url.pathname === "/" && request.method === "GET") {
+      const app = await fetch(APP_URL, { cf: { cacheTtl: 60 } });
+      if (!app.ok) return new Response("MyGallery app could not be loaded", { status: 502 });
+      return new Response(app.body, {
+        status: 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "public, max-age=60"
+        }
+      });
+    }
 
     if (url.pathname === "/api/health" && request.method === "GET") {
       return json({ ok: true, service: "MyGallery Telegram backend" });
